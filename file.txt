@@ -1,0 +1,30 @@
+That explains it — your local machine is fine, but the other system likely has a Python/wheel mismatch for greenlet.
+
+Use this exact repair flow on that system (in the same terminal/env you run the script from):
+
+python -V
+python -c "import struct,platform; print(struct.calcsize('P')*8, platform.machine())"
+python -m pip --version
+Then reinstall cleanly:
+
+python -m pip uninstall -y greenlet playwright
+python -m pip cache purge
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --no-cache-dir playwright
+python -m pip install --no-cache-dir --force-reinstall greenlet
+playwright install chromium
+Quick verify:
+
+python -c "import greenlet; print('greenlet ok', greenlet.__version__)"
+python -c "from playwright.sync_api import sync_playwright; print('playwright ok')"
+If it still fails, install/update Microsoft VC++ runtime (required by compiled wheels):
+
+Microsoft Visual C++ Redistributable (x64)
+Then rerun the two verify commands.
+
+If you want, paste the output of:
+
+python -V
+python -m pip show greenlet playwright
+python -c "import greenlet"
+from that other machine, and I’ll pinpoint the exact mismatch.
