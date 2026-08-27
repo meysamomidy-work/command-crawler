@@ -1,1 +1,46 @@
-Name,Dealer Page Link,List Address,Phone,Website,Inventory Count,Score,Review Count,Business Hours,State,Website Provider,Website Phone,Website Email,Chat Widget,Dealer Type,Website Enrichment Notes
+from exa_py import Exa
+from dataclasses import dataclass
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryResult:
+    website: str = ""
+    confidence: int = 0
+    note: str = ""
+    source: str = ""
+
+
+class ExaWebFinder:
+    """Exa web-search fallback for dealers without a verified Places result."""
+
+    def __init__(self, api_key: str, timeout: float) -> None:
+        self.timeout = timeout
+        self.client = Exa(api_key=api_key) if Exa is not None else None
+
+    def find(self, name: str, address: str, phone: str, min_confidence: int) -> DiscoveryResult:
+        if self.client is None:
+            return DiscoveryResult(note="Exa Search unavailable: install exa-py")
+        try:
+            response = self.client.search(
+                f'"{name}" "{address}"',
+                num_results=3,
+                type="auto",
+                contents={"highlights": True},
+            )
+            raw_results = getattr(response, "results", [])
+            results = [
+                {
+                    "url": getattr(item, "url", ""),
+                    "title": getattr(item, "title", ""),
+                }
+                for item in raw_results
+            ]
+        except Exception as exc:
+            return DiscoveryResult(note=f"Exa Search request failed: {exc}")
+
+        # return _verify_search_results(
+        #     name, address, phone, results,
+        #     source="Exa Search", min_confidence=min_confidence, timeout=self.timeout,
+        # )
+
+r = ExaWebFinder('ec99cda0-2c84-4991-9dd9-f8d5ad09824e', 30).find('Rags To Riches Auto Sales', '5601 So Broadway #330, Littleton, CO 80121 (26 mi)', '', 50)
+print(r)
